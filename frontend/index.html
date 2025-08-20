@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Credit Score Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+        .score-gauge {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        .gauge {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-135deg);
+        }
+        .gauge-circle {
+            fill: none;
+            stroke-width: 15;
+            stroke-linecap: round;
+            transform-origin: center;
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+        .gauge-bg {
+            stroke: #e2e8f0;
+        }
+        .gauge-fill {
+            stroke: url(#gradient);
+        }
+        .score-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .score-label {
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem;
+            color: #64748b;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Stock Credit Sc
+              ore</h1>
+            <p class="text-gray-600">Analyze the financial health and creditworthiness of any stock</p>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="mb-8">
+            <div class="relative max-w-xl mx-auto">
+                <input type="text" id="stockSearch" placeholder="Search for a stock (e.g. AAPL, MSFT, TSLA)" 
+                       class="w-full px-6 py-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm">
+                <button id="searchBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard" class="hidden">
+            <!-- Stock Info -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <div class="flex flex-col md:flex-row items-center justify-between">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <div class="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-chart-line text-blue-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 id="stockName" class="text-2xl font-bold text-gray-800">Apple Inc.</h2>
+                            <div class="flex items-center">
+                                <span id="stockTicker" class="text-gray-500 font-mono mr-2">AAPL</span>
+                                <span id="stockPrice" class="text-green-600 font-medium">$175.34</span>
+                                <span id="stockChange" class="ml-2 text-green-600 text-sm">(+2.34%)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button class="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 transition">
+                            <i class="fas fa-bookmark mr-2"></i>Save
+                        </button>
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Score and Metrics -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- Credit Score -->
+                <div class="bg-white rounded-xl shadow-md p-6 flex flex-col items-center">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Credit Score</h3>
+                    <div class="score-gauge pulse">
+                        <svg class="gauge" viewBox="0 0 120 120">
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#ef4444" />
+                                    <stop offset="50%" stop-color="#f59e0b" />
+                                    <stop offset="100%" stop-color="#10b981" />
+                                </linearGradient>
+                            </defs>
+                            <circle class="gauge-circle gauge-bg" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="0"></circle>
+                            <circle class="gauge-circle gauge-fill" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="157"></circle>
+                        </svg>
+                        <div class="score-value" id="creditScore">78</div>
+                        <div class="score-label">Good Credit</div>
+                    </div>
+                    <div class="mt-6 text-center">
+                        <p class="text-gray-600 mb-2">This stock has a <span class="font-semibold text-blue-600">good credit rating</span></p>
+                        <div class="flex justify-center space-x-2">
+                            <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">High Risk</span>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Medium Risk</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Low Risk</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Metrics -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Key Metrics</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-600">Debt-to-Equity</span>
+                                <span class="text-sm font-semibold text-blue-600">0.85</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-yellow-500 h-2 rounded-full" style="width: 65%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Industry average: 0.92</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-600">Interest Coverage</span>
+                                <span class="text-sm font-semibold text-blue-600">12.4x</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 85%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Industry average: 8.7x</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-600">Current Ratio</span>
+                                <span class="text-sm font-semibold text-blue-600">1.32</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 75%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Industry average: 1.15</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-600">Free Cash Flow</span>
+                                <span class="text-sm font-semibold text-blue-600">$89.5B</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 95%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Industry average: $22.1B</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Credit Rating -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Credit Rating</h3>
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-star text-yellow-500"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800">S&P Rating</h4>
+                            <p class="text-2xl font-bold text-blue-600">AA+</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-star text-yellow-500"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800">Moody's Rating</h4>
+                            <p class="text-2xl font-bold text-blue-600">Aa1</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-star text-yellow-500"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800">Fitch Rating</h4>
+                            <p class="text-2xl font-bold text-blue-600">AA</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graph and News Impact -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Graph -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-700">Credit Score Trend</h3>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-sm">1M</button>
+                            <button class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm">6M</button>
+                            <button class="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-sm">1Y</button>
+                            <button class="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-sm">5Y</button>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- News Impact -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Recent News Impact</h3>
+                    <div class="overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Headline</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impact</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">Apple announces record $110B stock buyback</td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">+5 pts</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">Supply chain issues in China affecting production</td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">-3 pts</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">New iPhone sales exceed expectations</td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">+4 pts</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">Regulatory scrutiny over App Store policies</td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">-2 pts</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">Partnership with OpenAI for AI features</td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">+3 pts</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">Recommendations</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h4 class="font-medium text-gray-800 mb-2">Analyst Consensus</h4>
+                        <p class="text-gray-600 text-sm">Based on 35 analyst ratings</p>
+                        <div class="mt-2 flex items-center">
+                            <span class="text-2xl font-bold text-green-600 mr-2">Buy</span>
+                            <span class="text-sm text-gray-500">(85% recommend)</span>
+                        </div>
+                    </div>
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h4 class="font-medium text-gray-800 mb-2">Credit Outlook</h4>
+                        <p class="text-gray-600 text-sm">Based on financial health</p>
+                        <div class="mt-2 flex items-center">
+                            <span class="text-2xl font-bold text-green-600 mr-2">Stable</span>
+                            <span class="text-sm text-gray-500">(Low default risk)</span>
+                        </div>
+                    </div>
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h4 class="font-medium text-gray-800 mb-2">Our Suggestion</h4>
+                        <p class="text-gray-600 text-sm">Based on credit score</p>
+                        <div class="mt-2 flex items-center">
+                            <span class="text-2xl font-bold text-green-600 mr-2">Hold</span>
+                            <span class="text-sm text-gray-500">(Monitor quarterly)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-16">
+            <div class="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-chart-pie text-blue-600 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-medium text-gray-700 mb-2">Search for a stock</h3>
+            <p class="text-gray-500 max-w-md mx-auto">Enter a stock ticker symbol above to view its credit score and financial health metrics.</p>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in a real app this would come from an API
+        const stockData = {
+            'AAPL': {
+                name: 'Apple Inc.',
+                price: 175.34,
+                change: 2.34,
+                score: 78,
+                rating: 'Good Credit',
+                metrics: {
+                    deRatio: 0.85,
+                    interestCoverage: 12.4,
+                    currentRatio: 1.32,
+                    freeCashFlow: 89.5
+                },
+                ratings: {
+                    sp: 'AA+',
+                    moodys: 'Aa1',
+                    fitch: 'AA'
+                },
+                news: [
+                    { headline: 'Apple announces record $110B stock buyback', impact: '+5 pts', type: 'positive' },
+                    { headline: 'Supply chain issues in China affecting production', impact: '-3 pts', type: 'negative' },
+                    { headline: 'New iPhone sales exceed expectations', impact: '+4 pts', type: 'positive' },
+                    { headline: 'Regulatory scrutiny over App Store policies', impact: '-2 pts', type: 'negative' },
+                    { headline: 'Partnership with OpenAI for AI features', impact: '+3 pts', type: 'positive' }
+                ]
+            },
+            'MSFT': {
+                name: 'Microsoft Corporation',
+                price: 328.39,
+                change: 1.56,
+                score: 85,
+                rating: 'Excellent Credit',
+                metrics: {
+                    deRatio: 0.45,
+                    interestCoverage: 18.2,
+                    currentRatio: 1.75,
+                    freeCashFlow: 65.2
+                },
+                ratings: {
+                    sp: 'AAA',
+                    moodys: 'Aaa',
+                    fitch: 'AAA'
+                },
+                news: [
+                    { headline: 'Azure cloud growth exceeds expectations', impact: '+6 pts', type: 'positive' },
+                    { headline: 'New AI investments announced', impact: '+4 pts', type: 'positive' },
+                    { headline: 'Antitrust concerns in Europe', impact: '-3 pts', type: 'negative' },
+                    { headline: 'Record quarterly revenue reported', impact: '+5 pts', type: 'positive' },
+                    { headline: 'Workforce reduction of 5%', impact: '-2 pts', type: 'negative' }
+                ]
+            },
+            'TSLA': {
+                name: 'Tesla Inc.',
+                price: 168.29,
+                change: -3.45,
+                score: 62,
+                rating: 'Fair Credit',
+                metrics: {
+                    deRatio: 1.25,
+                    interestCoverage: 5.8,
+                    currentRatio: 1.05,
+                    freeCashFlow: 12.7
+                },
+                ratings: {
+                    sp: 'BB+',
+                    moodys: 'Ba1',
+                    fitch: 'BB'
+                },
+                news: [
+                    { headline: 'Cybertruck production delays', impact: '-5 pts', type: 'negative' },
+                    { headline: 'Price cuts impact margins', impact: '-4 pts', type: 'negative' },
+                    { headline: 'New battery technology breakthrough', impact: '+6 pts', type: 'positive' },
+                    { headline: 'Recall of 500,000 vehicles', impact: '-7 pts', type: 'negative' },
+                    { headline: 'New factory in Mexico announced', impact: '+3 pts', type: 'positive' }
+                ]
+            }
+        };
+
+        // DOM elements
+        const stockSearch = document.getElementById('stockSearch');
+        const searchBtn = document.getElementById('searchBtn');
+        const dashboard = document.getElementById('dashboard');
+        const emptyState = document.getElementById('emptyState');
+        const stockName = document.getElementById('stockName');
+        const stockTicker = document.getElementById('stockTicker');
+        const stockPrice = document.getElementById('stockPrice');
+        const stockChange = document.getElementById('stockChange');
+        const creditScore = document.getElementById('creditScore');
+        let scoreChart = null;
+
+        // Search function
+        function searchStock() {
+            const ticker = stockSearch.value.trim().toUpperCase();
+            
+            if (stockData[ticker]) {
+                // Show dashboard and hide empty state
+                dashboard.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                
+                // Update stock info
+                const stock = stockData[ticker];
+                stockName.textContent = stock.name;
+                stockTicker.textContent = ticker;
+                stockPrice.textContent = `$${stock.price.toFixed(2)}`;
+                stockChange.textContent = `(${stock.change > 0 ? '+' : ''}${stock.change.toFixed(2)}%)`;
+                stockChange.className = `ml-2 ${stock.change >= 0 ? 'text-green-600' : 'text-red-600'} text-sm`;
+                
+                // Update credit score
+                creditScore.textContent = stock.score;
+                updateGauge(stock.score);
+                
+                // Update chart
+                updateChart(ticker);
+                
+                // Scroll to dashboard
+                dashboard.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert('Stock not found. Try AAPL, MSFT, or TSLA for demo purposes.');
+            }
+        }
+
+        // Update gauge visualization
+        function updateGauge(score) {
+            const percentage = score / 100;
+            const offset = 314 * (1 - percentage);
+            document.querySelector('.gauge-fill').style.strokeDashoffset = offset;
+            
+            // Update color based on score
+            const gaugeFill = document.querySelector('.gauge-fill');
+            if (score >= 80) {
+                gaugeFill.style.stroke = '#10b981'; // green
+            } else if (score >= 60) {
+                gaugeFill.style.stroke = '#f59e0b'; // yellow
+            } else {
+                gaugeFill.style.stroke = '#ef4444'; // red
+            }
+        }
+
+        // Update chart
+        function updateChart(ticker) {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            
+            // Destroy previous chart if exists
+            if (scoreChart) {
+                scoreChart.destroy();
+            }
+            
+            // Generate random historical data for demo
+            const baseScore = stockData[ticker].score;
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const data = months.map((month, i) => {
+                const fluctuation = Math.random() * 10 - 5; // Random number between -5 and 5
+                return Math.max(30, Math.min(95, baseScore + fluctuation));
+            });
+            
+            scoreChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Credit Score',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#3b82f6',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#1e3a8a',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 12
+                            },
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Score: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 30,
+                            max: 100,
+                            ticks: {
+                                stepSize: 10,
+                                callback: function(value) {
+                                    if (value >= 80) return `${value} (Excellent)`;
+                                    if (value >= 60) return `${value} (Good)`;
+                                    if (value >= 40) return `${value} (Fair)`;
+                                    return `${value} (Poor)`;
+                                }
+                            },
+                            grid: {
+                                drawBorder: false,
+                                color: '#e2e8f0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Event listeners
+        searchBtn.addEventListener('click', searchStock);
+        stockSearch.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchStock();
+            }
+        });
+
+        // Initialize with AAPL for demo purposes
+        window.addEventListener('load', function() {
+            stockSearch.value = 'AAPL';
+            searchStock();
+        });
+    </script>
+</body>
+</html>
