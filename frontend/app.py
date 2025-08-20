@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 
-API_URL = "http://localhost:8000/scores"  # later replace with your Render URL
+API_URL = "https://lcf-web.onrender.com/scores"  # later replace with your Render URL
 
 st.title("📈 CredTech - Phase 1 Prototype")
 
