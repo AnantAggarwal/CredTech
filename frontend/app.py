@@ -20,40 +20,7 @@ API_URL = "https://lcf-web.onrender.com/scores"
 # Sample data for demonstration (replace with actual API calls)
 def get_sample_data():
     """Generate sample data for demonstration"""
-    stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'AMD', 'INTC']
-    companies = [
-        'Apple Inc.', 'Microsoft Corporation', 'Alphabet Inc.', 'Amazon.com Inc.',
-        'Tesla Inc.', 'Meta Platforms Inc.', 'NVIDIA Corporation', 'Netflix Inc.',
-        'Advanced Micro Devices', 'Intel Corporation'
-    ]
-    
-    data = []
-    for i, (ticker, company) in enumerate(zip(stocks, companies)):
-        # Generate realistic credit scores (60-95 range)
-        credit_score = np.random.randint(60, 96)
-        
-        # Generate sentiment scores (-100 to 100 range)
-        sentiment_score = np.random.randint(-50, 81)
-        
-        # Generate historical data
-        dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='M')
-        historical_credit = [credit_score + np.random.randint(-10, 11) for _ in range(len(dates))]
-        historical_sentiment = [sentiment_score + np.random.randint(-20, 21) for _ in range(len(dates))]
-        
-        # Ensure scores stay in reasonable ranges
-        historical_credit = [max(30, min(100, score)) for score in historical_credit]
-        historical_sentiment = [max(-100, min(100, score)) for score in historical_sentiment]
-        
-        data.append({
-            'ticker': ticker,
-            'company': company,
-            'credit_score': credit_score,
-            'sentiment_score': sentiment_score,
-            'historical_dates': dates,
-            'historical_credit': historical_credit,
-            'historical_sentiment': historical_sentiment,
-            'last_updated': datetime.now() - timedelta(days=np.random.randint(1, 30))
-        })
+    data = requests.get(API_URL).json()
     
     return data
 
@@ -245,7 +212,7 @@ def show_leaderboard(data):
                 st.markdown(f"**{i}**")
         
         with col2:
-            st.markdown(f"**{stock['ticker']}** - {stock['company']}")
+            st.markdown(f"**{stock['ticker']}** - {stock['name']}")
         
         with col3:
             st.markdown(f"**{stock['credit_score']}**")
