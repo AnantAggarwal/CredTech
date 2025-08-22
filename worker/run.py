@@ -5,6 +5,9 @@ import pandas as pd
 from unstructured import compute_sentiment_score
 from datetime import datetime, timedelta
 import argparse
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL")
