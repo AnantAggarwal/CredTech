@@ -25,7 +25,7 @@ def get_sample_data():
     data['credit_score'] = 50*(data['credit_score']+1)
     data['credit_score'] = data['credit_score'].round()
 
-    return data
+    return data.to_dict(orient='records')
 
 def get_sentiment_summary(sentiment_score):
     """Generate sentiment summary based on score"""
@@ -185,7 +185,7 @@ def show_leaderboard(data):
     st.markdown("Ranking of stocks based on their credit scores and financial health")
     
     # Sort data by credit score
-    sorted_data = data.sort_values(by=['credit_score']).to_dict(orient='records')
+    sorted_data = sorted(data, key=lambda x: x['credit_score'], reverse=True)
     
     # Create leaderboard
     col1, col2, col3 = st.columns([2, 1, 1])
