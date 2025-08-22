@@ -200,7 +200,7 @@ def show_leaderboard(data):
     st.markdown("---")
     
     for i, stock in enumerate(sorted_data, 1):
-        rating, rating_text, color = get_credit_rating(stock['credit_score'])
+        rating, rating_text, color = get_credit_rating(stock['credit_score'][i])
         
         col1, col2, col3, col4 = st.columns([0.5, 1.5, 1, 1])
         
