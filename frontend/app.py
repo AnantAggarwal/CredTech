@@ -185,7 +185,7 @@ def show_leaderboard(data):
     st.markdown("Ranking of stocks based on their credit scores and financial health")
     
     # Sort data by credit score
-    sorted_data = data.sort_values(by=['credit_score']).to_dict()
+    sorted_data = data.sort_values(by=['credit_score']).to_dict(orient='records')
     
     # Create leaderboard
     col1, col2, col3 = st.columns([2, 1, 1])
