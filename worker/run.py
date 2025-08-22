@@ -7,13 +7,7 @@ from datetime import datetime, timedelta
 import argparse
 
 # Database configuration
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'database': os.getenv('DB_NAME', 'credtech'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'port': os.getenv('DB_PORT', '5432')
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # API Keys
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
@@ -71,8 +65,10 @@ def create_company_mapping(tickers):
 def get_db_connection():
     """Create and return database connection"""
     try:
-        DB_URL = os.getenv("DATABASE_URL")
-        conn = psycopg2.connect(DB_URL)
+        if not DATABASE_URL:
+            print("Error: DATABASE_URL environment variable not set")
+            return None
+        conn = psycopg2.connect(DATABASE_URL)
         return conn
     except Exception as e:
         print(f"Error connecting to database: {e}")
