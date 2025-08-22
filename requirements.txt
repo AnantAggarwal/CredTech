@@ -16,3 +16,4 @@ numpy==1.24.3
 scikit-learn==1.3.2
 pandas_datareader>=0.10.0
 pyyaml>=6.0
+plotly==5.17.0

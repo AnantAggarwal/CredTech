@@ -3,7 +3,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 from unstructured import compute_sentiment_score
-from datetime import datetime
+from datetime import datetime, timedelta
+import argparse
 
 # Database configuration
 DB_CONFIG = {
@@ -18,36 +19,82 @@ DB_CONFIG = {
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 
-# Sample company data - replace with your actual data
-TICKERS = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
-TAG_TO_COMP = {
-    'AAPL': 'Apple Inc',
-    'GOOGL': 'Alphabet Inc',
-    'MSFT': 'Microsoft Corporation',
-    'AMZN': 'Amazon.com Inc',
-    'TSLA': 'Tesla Inc'
-}
+def load_tickers_from_file(file_path='tickers.txt'):
+    """Load tickers from tickers.txt file"""
+    try:
+        with open(file_path, 'r') as file:
+            tickers = [line.strip() for line in file if line.strip()]
+        print(f"Loaded {len(tickers)} tickers from {file_path}")
+        return tickers
+    except FileNotFoundError:
+        print(f"Warning: {file_path} not found. Using default tickers.")
+        return ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
+
+def create_company_mapping(tickers):
+    """Create a mapping from ticker to company name"""
+    # Common company name mappings
+    company_names = {
+        'AAPL': 'Apple Inc',
+        'MSFT': 'Microsoft Corporation',
+        'GOOGL': 'Alphabet Inc',
+        'AMZN': 'Amazon.com Inc',
+        'META': 'Meta Platforms Inc',
+        'TSLA': 'Tesla Inc',
+        'JPM': 'JPMorgan Chase & Co',
+        'BAC': 'Bank of America Corp',
+        'GS': 'Goldman Sachs Group Inc',
+        'V': 'Visa Inc',
+        'MA': 'Mastercard Inc',
+        'XOM': 'Exxon Mobil Corporation',
+        'CVX': 'Chevron Corporation',
+        'PG': 'Procter & Gamble Co',
+        'KO': 'Coca-Cola Company',
+        'PEP': 'PepsiCo Inc',
+        'WMT': 'Walmart Inc',
+        'UNH': 'UnitedHealth Group Inc',
+        'JNJ': 'Johnson & Johnson',
+        'NVDA': 'NVIDIA Corporation'
+    }
+    
+    # Create mapping for loaded tickers
+    tag_to_comp = {}
+    for ticker in tickers:
+        if ticker in company_names:
+            tag_to_comp[ticker] = company_names[ticker]
+        else:
+            # Use ticker as company name if not found in mapping
+            tag_to_comp[ticker] = ticker
+            print(f"Warning: No company name mapping found for {ticker}")
+    
+    return tag_to_comp
 
 def get_db_connection():
     """Create and return database connection"""
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        DB_URL = os.getenv("DATABASE_URL")
+        conn = psycopg2.connect(DB_URL)
         return conn
     except Exception as e:
         print(f"Error connecting to database: {e}")
         return None
 
-def insert_or_update_company(conn, ticker, name, sentiment_score, sentiment_summary):
+def insert_or_update_company(conn, ticker, name, sentiment_score, sentiment_summary, is_update=False):
     """Insert or update company record in companies table"""
     try:
         with conn.cursor() as cursor:
             # Check if company exists
-            cursor.execute("SELECT id FROM companies WHERE ticker = %s", (ticker,))
+            cursor.execute("SELECT id, sentiment_score FROM companies WHERE ticker = %s", (ticker,))
             result = cursor.fetchone()
             
             if result:
+                company_id, existing_score = result
+                if is_update and existing_score is not None:
+                    # Calculate average of existing and new score
+                    new_average_score = (existing_score + sentiment_score) / 2
+                    print(f"Updating {ticker}: existing score {existing_score:.3f}, new score {sentiment_score:.3f}, average {new_average_score:.3f}")
+                    sentiment_score = new_average_score
+                
                 # Update existing company
-                company_id = result[0]
                 cursor.execute("""
                     UPDATE companies 
                     SET name = %s, credit_score = %s, sentiment_score = %s, sentiment_summary = %s
@@ -85,9 +132,20 @@ def insert_score_record(conn, company_id, sentiment_score):
         print(f"Error inserting score record for company_id {company_id}: {e}")
         conn.rollback()
 
-def process_sentiment_data():
+def process_sentiment_data(start_date=None, end_date=None, is_update=False):
     """Main function to process sentiment data and update database"""
     print("Starting sentiment analysis...")
+    
+    if start_date and end_date:
+        print(f"Processing data from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+    else:
+        print("Processing recent data (no date range specified)")
+    
+    print(f"Database mode: {'Update (averaging scores)' if is_update else 'Initialize (replacing scores)'}")
+    
+    # Load tickers and create company mapping
+    tickers = load_tickers_from_file()
+    tag_to_comp = create_company_mapping(tickers)
     
     # Get database connection
     conn = get_db_connection()
@@ -98,7 +156,10 @@ def process_sentiment_data():
     try:
         # Compute sentiment scores for all tickers
         print("Computing sentiment scores...")
-        sentiment_results = compute_sentiment_score(TICKERS, TAG_TO_COMP, NEWS_API_KEY, TWITTER_BEARER_TOKEN)
+        sentiment_results = compute_sentiment_score(
+            tickers, tag_to_comp, NEWS_API_KEY, TWITTER_BEARER_TOKEN, 
+            start_date, end_date
+        )
         
         print(f"Processed {len(sentiment_results)} companies")
         
@@ -113,7 +174,7 @@ def process_sentiment_data():
             
             # Insert/update company record
             company_id = insert_or_update_company(
-                conn, ticker, company_name, sentiment_score, sentiment_summary
+                conn, ticker, company_name, sentiment_score, sentiment_summary, is_update
             )
             
             if company_id:
@@ -159,9 +220,36 @@ def get_latest_scores():
     finally:
         conn.close()
 
+def parse_date(date_str):
+    """Parse date string in YYYY-MM-DD format"""
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid date format: {date_str}. Use YYYY-MM-DD")
+
 if __name__ == "__main__":
+    # Set up command line argument parsing
+    parser = argparse.ArgumentParser(description='Process sentiment data for companies')
+    parser.add_argument('--start-date', type=parse_date, 
+                       help='Start date for data collection (YYYY-MM-DD)')
+    parser.add_argument('--end-date', type=parse_date, 
+                       help='End date for data collection (YYYY-MM-DD)')
+    parser.add_argument('--mode', choices=['init', 'update'], default='init',
+                       help='Database mode: init (replace scores) or update (average scores)')
+    
+    args = parser.parse_args()
+    
+    # Validate date range
+    if args.start_date and args.end_date:
+        if args.start_date >= args.end_date:
+            print("Error: Start date must be before end date")
+            exit(1)
+    
+    # Convert mode to boolean
+    is_update = args.mode == 'update'
+    
     # Process sentiment data and update database
-    process_sentiment_data()
+    process_sentiment_data(args.start_date, args.end_date, is_update)
     
     # Display latest scores
     print("\nLatest sentiment scores:")

@@ -4,15 +4,34 @@ import requests
 import pandas as pd
 from transformers import pipeline
 import google.generativeai as genai
-from datetime import datetime
+from datetime import datetime, timedelta
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-def get_company_tweets(ticker, tag_to_comp, bearer_token):
+def get_company_tweets(ticker, tag_to_comp, bearer_token, start_date=None, end_date=None):
     client = tweepy.Client(bearer_token)
     query = ticker + " or " + tag_to_comp[ticker]
     tweet_data = []
-    response = client.search_recent_tweets(query, max_results=100, tweet_fields=["created_at"])
+    
+    # Add date range to query if provided
+    if start_date and end_date:
+        # Twitter API uses ISO format for dates
+        start_str = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+        end_str = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+        response = client.search_recent_tweets(
+            query, 
+            max_results=100, 
+            tweet_fields=["created_at"],
+            start_time=start_str,
+            end_time=end_str
+        )
+    else:
+        response = client.search_recent_tweets(
+            query, 
+            max_results=100, 
+            tweet_fields=["created_at"]
+        )
+    
     tweets = response.data
     for tweet in tweets:
         tweet_data.append({"text": tweet.text, "created_at": tweet.created_at, "company": ticker})
@@ -20,13 +39,26 @@ def get_company_tweets(ticker, tag_to_comp, bearer_token):
     df = pd.DataFrame(tweet_data)
     return df
 
-def get_company_news(ticker, tag_to_comp, NEWS_API_KEY):
+def get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date=None, end_date=None):
     query = f'"{tag_to_comp[ticker]}" OR {ticker}'
-    url = (f'https://newsapi.org/v2/everything?'
-           f'q={query}&'
-           f'language=en&'
-           f'sortBy=publishedAt&'
-           f'apiKey={NEWS_API_KEY}')
+    
+    # Add date range to query if provided
+    if start_date and end_date:
+        from_str = start_date.strftime('%Y-%m-%d')
+        to_str = end_date.strftime('%Y-%m-%d')
+        url = (f'https://newsapi.org/v2/everything?'
+               f'q={query}&'
+               f'language=en&'
+               f'sortBy=publishedAt&'
+               f'from={from_str}&'
+               f'to={to_str}&'
+               f'apiKey={NEWS_API_KEY}')
+    else:
+        url = (f'https://newsapi.org/v2/everything?'
+               f'q={query}&'
+               f'language=en&'
+               f'sortBy=publishedAt&'
+               f'apiKey={NEWS_API_KEY}')
 
     response = requests.get(url)
     articles = response.json().get('articles', [])
@@ -119,7 +151,7 @@ def generate_sentiment_summary(company_name, tweet_score, news_score, blended_sc
     except Exception as e:
         return f"Error generating summary: {str(e)}"
 
-def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token):
+def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token, start_date=None, end_date=None):
     """Compute sentiment scores for multiple tickers and return summary dataframe"""
     
     # Initialize sentiment analysis pipelines
@@ -129,9 +161,9 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token):
     
     for ticker in tickers:
         try:
-            # Get data
-            tweets_df = get_company_tweets(ticker, tag_to_comp, bearer_token)
-            news_df = get_company_news(ticker, tag_to_comp, NEWS_API_KEY)
+            # Get data with date range if provided
+            tweets_df = get_company_tweets(ticker, tag_to_comp, bearer_token, start_date, end_date)
+            news_df = get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date, end_date)
             
             # Analyze sentiment
             tweets_df = analyze_sentiment_dataframe(tweets_df, 'text', sentiment_pipeline)
