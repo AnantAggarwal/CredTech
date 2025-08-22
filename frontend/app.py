@@ -292,7 +292,7 @@ def show_sentiment_analysis(data):
     
     with col2:
         #st.markdown(f"**Overall Sentiment:** {sentiment_info['overall']}")
-        st.markdown(f"**Score:** {data['company_info']['sentiment_score']}/100")
+        st.markdown(f"**Score:** {data['company_info']['current_sentiment_score']}/100")
         
         # Sentiment summary
         st.markdown("**Summary:**")
