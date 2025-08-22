@@ -76,30 +76,87 @@ def get_db_connection():
         print(f"Error connecting to database: {e}")
         return None
 
+def recreate_database():
+    """Delete all tables and recreate them from schema"""
+    print("Recreating database tables...")
+    
+    conn = get_db_connection()
+    if not conn:
+        print("Failed to connect to database. Cannot recreate tables.")
+        return False
+    
+    try:
+        with conn.cursor() as cursor:
+            # Drop existing tables (in correct order due to foreign key constraints)
+            cursor.execute("DROP TABLE IF EXISTS scores CASCADE")
+            cursor.execute("DROP TABLE IF EXISTS companies CASCADE")
+            
+            # Recreate tables from schema
+            cursor.execute("""
+                CREATE TABLE companies (
+                    id SERIAL PRIMARY KEY,
+                    ticker TEXT UNIQUE NOT NULL,
+                    name TEXT,
+                    credit_score FLOAT,
+                    sentiment_score FLOAT,
+                    sentiment_summary TEXT
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE scores (
+                    id SERIAL PRIMARY KEY,
+                    company_id INT REFERENCES companies(id),
+                    credit_score FLOAT,
+                    sentiment_score FLOAT,
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            
+            conn.commit()
+            print("Database tables recreated successfully!")
+            return True
+            
+    except Exception as e:
+        print(f"Error recreating database: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
 def insert_or_update_company(conn, ticker, name, sentiment_score, sentiment_summary, is_update=False):
     """Insert or update company record in companies table"""
     try:
         with conn.cursor() as cursor:
-            # Check if company exists
-            cursor.execute("SELECT id, sentiment_score FROM companies WHERE ticker = %s", (ticker,))
-            result = cursor.fetchone()
-            
-            if result:
-                company_id, existing_score = result
-                if is_update and existing_score is not None:
-                    # Calculate average of existing and new score
-                    new_average_score = (existing_score + sentiment_score) / 2
-                    print(f"Updating {ticker}: existing score {existing_score:.3f}, new score {sentiment_score:.3f}, average {new_average_score:.3f}")
-                    sentiment_score = new_average_score
+            if is_update:
+                # Check if company exists for update mode
+                cursor.execute("SELECT id, sentiment_score FROM companies WHERE ticker = %s", (ticker,))
+                result = cursor.fetchone()
                 
-                # Update existing company
-                cursor.execute("""
-                    UPDATE companies 
-                    SET name = %s, credit_score = %s, sentiment_score = %s, sentiment_summary = %s
-                    WHERE id = %s
-                """, (name, sentiment_score, sentiment_score, sentiment_summary, company_id))
+                if result:
+                    company_id, existing_score = result
+                    if existing_score is not None:
+                        # Calculate average of existing and new score
+                        new_average_score = (existing_score + sentiment_score) / 2
+                        print(f"Updating {ticker}: existing score {existing_score:.3f}, new score {sentiment_score:.3f}, average {new_average_score:.3f}")
+                        sentiment_score = new_average_score
+                    
+                    # Update existing company
+                    cursor.execute("""
+                        UPDATE companies 
+                        SET name = %s, credit_score = %s, sentiment_score = %s, sentiment_summary = %s
+                        WHERE id = %s
+                    """, (name, sentiment_score, sentiment_score, sentiment_summary, company_id))
+                else:
+                    # Insert new company in update mode
+                    cursor.execute("""
+                        INSERT INTO companies (ticker, name, credit_score, sentiment_score, sentiment_summary)
+                        VALUES (%s, %s, %s, %s, %s)
+                        RETURNING id
+                    """, (ticker, name, sentiment_score, sentiment_score, sentiment_summary))
+                    company_id = cursor.fetchone()[0]
             else:
-                # Insert new company
+                # Init mode: always insert new company (since tables were recreated)
                 cursor.execute("""
                     INSERT INTO companies (ticker, name, credit_score, sentiment_score, sentiment_summary)
                     VALUES (%s, %s, %s, %s, %s)
@@ -139,7 +196,13 @@ def process_sentiment_data(start_date=None, end_date=None, is_update=False):
     else:
         print("Processing recent data (no date range specified)")
     
-    print(f"Database mode: {'Update (averaging scores)' if is_update else 'Initialize (replacing scores)'}")
+    print(f"Database mode: {'Update (averaging scores)' if is_update else 'Initialize (replacing scores and recreating tables)'}")
+    
+    # If in init mode, recreate the database tables
+    if not is_update:
+        if not recreate_database():
+            print("Failed to recreate database. Exiting.")
+            return
     
     # Load tickers and create company mapping
     tickers = load_tickers_from_file()
