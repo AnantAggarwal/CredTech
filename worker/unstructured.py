@@ -9,6 +9,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 def get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date=None, end_date=None):
     query = f'"{tag_to_comp[ticker]}" OR {ticker}'
+    print(f"Searching for news with query: {query}")
     
     # Add date range to query if provided
     if start_date and end_date:
@@ -21,27 +22,49 @@ def get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date=None, end_dat
                f'from={from_str}&'
                f'to={to_str}&'
                f'apiKey={NEWS_API_KEY}')
+        print(f"Using date range: {from_str} to {to_str}")
     else:
         url = (f'https://newsapi.org/v2/everything?'
                f'q={query}&'
                f'language=en&'
                f'sortBy=publishedAt&'
                f'apiKey={NEWS_API_KEY}')
+        print("No date range specified, using recent articles")
 
+    print(f"Making request to News API...")
     response = requests.get(url)
-    articles = response.json().get('articles', [])
+    
+    # Check if the request was successful
+    if response.status_code != 200:
+        print(f"Error: News API returned status code {response.status_code}")
+        print(f"Response: {response.text}")
+        return pd.DataFrame()
+    
+    data = response.json()
+    print(f"News API response status: {data.get('status', 'unknown')}")
+    print(f"Total results: {data.get('totalResults', 0)}")
+    
+    articles = data.get('articles', [])
+    print(f"Number of articles received: {len(articles)}")
 
     # Filter for relevant articles, create a DataFrame
     news_data = []
-    for article in articles:
+    for i, article in enumerate(articles):
+        # Check if required fields exist
+        if not article.get('title') or not article.get('description'):
+            print(f"Skipping article {i}: missing title or description")
+            continue
+            
         news_data.append({
-            'source': article['source']['name'],
+            'source': article['source']['name'] if article.get('source') else 'Unknown',
             'title': article['title'],
             'description': article['description'],
-            'url': article['url'],
-            'published_at': article['publishedAt'],
-            'text':article['title']+'\n'+article['description']
+            'url': article.get('url', ''),
+            'published_at': article.get('publishedAt', ''),
+            'text': article['title'] + '\n' + article['description']
         })
+    
+    print(f"Processed {len(news_data)} valid articles")
     return pd.DataFrame(news_data)
 
 def label_to_numeric(row):
@@ -113,6 +136,13 @@ def generate_sentiment_summary(company_name, news_score, top_headlines, bottom_h
 def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=None, start_date=None, end_date=None):
     """Compute sentiment scores for multiple tickers and return summary dataframe"""
     
+    # Check if NEWS_API_KEY is provided
+    if not NEWS_API_KEY:
+        print("ERROR: NEWS_API_KEY is not provided!")
+        return pd.DataFrame()
+    
+    print(f"Using NEWS_API_KEY: {NEWS_API_KEY[:10]}..." if len(NEWS_API_KEY) > 10 else f"Using NEWS_API_KEY: {NEWS_API_KEY}")
+    
     # Initialize sentiment analysis pipelines
     sentiment_pipeline = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest")
     
@@ -120,9 +150,13 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=Non
     
     for ticker in tickers:
         try:
+            print(f"\n=== Processing {ticker} ===")
             # Get news data with date range if provided
             news_df = get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date, end_date)
-            print(news_df)
+            print(f"News DataFrame shape: {news_df.shape}")
+            print(f"News DataFrame empty: {news_df.empty}")
+            if not news_df.empty:
+                print(f"First few articles: {news_df.head(2)}")
             
             # Analyze sentiment
             news_df = analyze_sentiment_dataframe(news_df, 'text', sentiment_pipeline)
