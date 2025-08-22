@@ -143,7 +143,7 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=Non
     print(f"Using NEWS_API_KEY: {NEWS_API_KEY[:10]}..." if len(NEWS_API_KEY) > 10 else f"Using NEWS_API_KEY: {NEWS_API_KEY}")
     
     # Initialize sentiment analysis pipelines
-    sentiment_pipeline = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest")
+    sentiment_pipeline = pipeline("sentiment-analysis", model="rahilv/news-sentiment-analysis-roberta")
     
     results = []
     
