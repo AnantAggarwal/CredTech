@@ -296,7 +296,7 @@ def show_sentiment_analysis(data):
         
         # Sentiment summary
         st.markdown("**Summary:**")
-        st.markdown(data['company_info']['summary'])
+        st.markdown(data['company_info']['sentiment_summary'])
 
 def show_historical_trends(data):
     st.subheader("Historical Trends")
