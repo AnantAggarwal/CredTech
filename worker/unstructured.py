@@ -1,4 +1,3 @@
-import tweepy
 import os
 import requests
 import pandas as pd
@@ -7,37 +6,6 @@ import google.generativeai as genai
 from datetime import datetime, timedelta
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-def get_company_tweets(ticker, tag_to_comp, bearer_token, start_date=None, end_date=None):
-    client = tweepy.Client(bearer_token)
-    query = ticker + " or " + tag_to_comp[ticker]
-    tweet_data = []
-    
-    # Add date range to query if provided
-    if start_date and end_date:
-        # Twitter API uses ISO format for dates
-        start_str = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-        end_str = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-        response = client.search_recent_tweets(
-            query, 
-            max_results=100, 
-            tweet_fields=["created_at"],
-            start_time=start_str,
-            end_time=end_str
-        )
-    else:
-        response = client.search_recent_tweets(
-            query, 
-            max_results=100, 
-            tweet_fields=["created_at"]
-        )
-    
-    tweets = response.data
-    for tweet in tweets:
-        tweet_data.append({"text": tweet.text, "created_at": tweet.created_at, "company": ticker})
-
-    df = pd.DataFrame(tweet_data)
-    return df
 
 def get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date=None, end_date=None):
     query = f'"{tag_to_comp[ticker]}" OR {ticker}'
@@ -112,8 +80,7 @@ def get_extreme_content(df, column, n=5):
     
     return top_items, bottom_items
 
-def generate_sentiment_summary(company_name, tweet_score, news_score, blended_score, 
-                             top_tweets, bottom_tweets, top_headlines, bottom_headlines):
+def generate_sentiment_summary(company_name, news_score, top_headlines, bottom_headlines):
     """Generate sentiment summary using Gemini"""
     genai.configure(api_key=GOOGLE_API_KEY)
     model = genai.GenerativeModel('gemini-pro')
@@ -122,15 +89,7 @@ def generate_sentiment_summary(company_name, tweet_score, news_score, blended_sc
     Analyze the sentiment data for {company_name} and provide a comprehensive summary.
     
     Sentiment Scores:
-    - Twitter Sentiment: {tweet_score:.3f}
     - News Sentiment: {news_score:.3f}
-    - Blended Score: {blended_score:.3f}
-    
-    Top 10 Positive Tweets:
-    {chr(10).join(top_tweets) if top_tweets else 'No positive tweets found'}
-    
-    Top 10 Negative Tweets:
-    {chr(10).join(bottom_tweets) if bottom_tweets else 'No negative tweets found'}
     
     Top 10 Positive Headlines:
     {chr(10).join(top_headlines) if top_headlines else 'No positive headlines found'}
@@ -140,9 +99,8 @@ def generate_sentiment_summary(company_name, tweet_score, news_score, blended_sc
     
     Please provide a 2-3 paragraph summary covering:
     1. Overall sentiment assessment
-    2. Key themes from social media
-    3. Key themes from news coverage
-    4. Potential market implications
+    2. Key themes from news coverage
+    3. Potential market implications
     """
     
     try:
@@ -151,7 +109,7 @@ def generate_sentiment_summary(company_name, tweet_score, news_score, blended_sc
     except Exception as e:
         return f"Error generating summary: {str(e)}"
 
-def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token, start_date=None, end_date=None):
+def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=None, start_date=None, end_date=None):
     """Compute sentiment scores for multiple tickers and return summary dataframe"""
     
     # Initialize sentiment analysis pipelines
@@ -161,33 +119,24 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token, st
     
     for ticker in tickers:
         try:
-            # Get data with date range if provided
-            print(1)
-            tweets_df = get_company_tweets(ticker, tag_to_comp, bearer_token, start_date, end_date)
-            print(2)
+            # Get news data with date range if provided
             news_df = get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date, end_date)
-            print(3)
+            
             # Analyze sentiment
-            tweets_df = analyze_sentiment_dataframe(tweets_df, 'text', sentiment_pipeline)
             news_df = analyze_sentiment_dataframe(news_df, 'text', sentiment_pipeline)
             
             # Calculate average sentiments
-            tweet_sentiment = tweets_df['numeric_sentiment'].mean() if not tweets_df.empty else 0.0
             news_sentiment = news_df['numeric_sentiment'].mean() if not news_df.empty else 0.0
             
-            # Calculate weighted sentiment
-            tweet_weight = 0.4
-            news_weight = 0.6
-            sentiment_score = tweet_sentiment * tweet_weight + news_sentiment * news_weight
+            # Use news sentiment as the main sentiment score
+            sentiment_score = news_sentiment
             
             # Get extreme content
-            top_tweets, bottom_tweets = get_extreme_content(tweets_df, 'text')
             top_headlines, bottom_headlines = get_extreme_content(news_df, 'title')
             
             # Generate summary
             summary = generate_sentiment_summary(
-                tag_to_comp[ticker], tweet_sentiment, news_sentiment, sentiment_score,
-                top_tweets, bottom_tweets, top_headlines, bottom_headlines
+                tag_to_comp[ticker], news_sentiment, top_headlines, bottom_headlines
             )
             
             # Store results
@@ -203,11 +152,8 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token, st
             results.append({
                 'ticker': ticker,
                 'company_name': tag_to_comp[ticker],
-                'tweet_sentiment': 0.0,
                 'news_sentiment': 0.0,
-                'blended_sentiment': 0.0,
-                'tweet_count': 0,
-                'news_count': 0,
+                'sentiment_score': 0.0,
                 'sentiment_summary': f"Error processing data: {str(e)}"
             })
     

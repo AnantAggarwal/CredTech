@@ -14,7 +14,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # API Keys
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 
 def load_tickers_from_file(file_path='tickers.txt'):
     """Load tickers from tickers.txt file"""
@@ -156,8 +155,8 @@ def process_sentiment_data(start_date=None, end_date=None, is_update=False):
         # Compute sentiment scores for all tickers
         print("Computing sentiment scores...")
         sentiment_results = compute_sentiment_score(
-            tickers, tag_to_comp, NEWS_API_KEY, TWITTER_BEARER_TOKEN, 
-            start_date, end_date
+            tickers, tag_to_comp, NEWS_API_KEY, 
+            start_date=start_date, end_date=end_date
         )
         
         print(f"Processed {len(sentiment_results)} companies")
