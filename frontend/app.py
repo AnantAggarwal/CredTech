@@ -32,6 +32,12 @@ def get_sample_data():
 
 def get_stock_data(ticker):
     data = requests.get(API_URL+'company/'+ticker+'/history').json()
+    data['company_info']['current_credit_score']=int(50*(data['company_info']['current_credit_score']+1))
+    data['company_info']['current_sentiment_score']*=100
+    data['company_info']['current_sentiment_score'] = int(data['company_info']['current_sentiment_score'])
+    for dp in data['score_history']:
+        dp['credit_score'] = int(50*(dp['credit_score']+1))
+        dp['sentiment_score'] = int(100*(dp['sentiment_score']))
     return data
 
 def create_credit_score_chart(dates, scores, ticker):
