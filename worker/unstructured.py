@@ -127,7 +127,7 @@ def generate_sentiment_summary(company_name, news_score, top_headlines, bottom_h
     """
     
     try:
-        response = client.models.generate_content(model='gemma-3-27b-it', content=prompt)
+        response = client.models.generate_content(model='gemma-3-27b-it', contents=prompt)
         return response.text
     except Exception as e:
         return f"Error generating summary: {str(e)}"
