@@ -30,69 +30,6 @@ def get_sample_data():
 
     return data.to_dict(orient='records')
 
-def get_sentiment_summary(sentiment_score):
-    """Generate sentiment summary based on score"""
-    if sentiment_score >= 60:
-        return {
-            'overall': 'Very Positive',
-            'color': 'green',
-            'summary': 'Market sentiment is very positive for this stock. Investors are optimistic about the company\'s future prospects, driven by strong fundamentals and positive news flow.',
-            'key_points': [
-                'Strong investor confidence',
-                'Positive news sentiment',
-                'Favorable analyst ratings',
-                'Growing market share'
-            ]
-        }
-    elif sentiment_score >= 20:
-        return {
-            'overall': 'Positive',
-            'color': 'lightgreen',
-            'summary': 'Market sentiment is generally positive. While there may be some concerns, the overall outlook remains favorable.',
-            'key_points': [
-                'Moderate investor confidence',
-                'Generally positive news',
-                'Stable analyst outlook',
-                'Steady performance'
-            ]
-        }
-    elif sentiment_score >= -20:
-        return {
-            'overall': 'Neutral',
-            'color': 'gray',
-            'summary': 'Market sentiment is neutral. Investors are taking a wait-and-see approach, with mixed signals from news and analyst reports.',
-            'key_points': [
-                'Mixed investor sentiment',
-                'Balanced news coverage',
-                'Diverse analyst opinions',
-                'Stable but uncertain outlook'
-            ]
-        }
-    elif sentiment_score >= -60:
-        return {
-            'overall': 'Negative',
-            'color': 'orange',
-            'summary': 'Market sentiment is negative. There are concerns about the company\'s performance and future prospects.',
-            'key_points': [
-                'Declining investor confidence',
-                'Negative news sentiment',
-                'Analyst downgrades',
-                'Performance concerns'
-            ]
-        }
-    else:
-        return {
-            'overall': 'Very Negative',
-            'color': 'red',
-            'summary': 'Market sentiment is very negative. Significant concerns exist about the company\'s viability and future prospects.',
-            'key_points': [
-                'Very low investor confidence',
-                'Highly negative news coverage',
-                'Multiple analyst downgrades',
-                'Serious performance issues'
-            ]
-        }
-
 
 def create_credit_score_chart(dates, scores, ticker):
     """Create credit score trend chart"""
@@ -244,14 +181,13 @@ def show_stock_analysis(data):
         selected_stock = stock_options[selected_stock_name]
         
         # Header with stock info
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(3)
         
         with col1:
             st.metric("Ticker", selected_stock['ticker'])
         
         with col2:
-            credit_rating, rating_text, color = get_credit_rating(selected_stock['credit_score'])
-            st.metric("Credit Score", f"{selected_stock['credit_score']} ({credit_rating})")
+            st.metric("Credit Score", f"{selected_stock['credit_score']}")
         
         with col3:
             sentiment_info = get_sentiment_summary(selected_stock['sentiment_score'])

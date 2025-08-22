@@ -2,7 +2,7 @@ import os
 import requests
 import pandas as pd
 from transformers import pipeline
-import google.generativeai as genai
+from google import genai
 from datetime import datetime, timedelta
 
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -106,8 +106,7 @@ def get_extreme_content(df, column, n=5):
 
 def generate_sentiment_summary(company_name, news_score, top_headlines, bottom_headlines):
     """Generate sentiment summary using Gemini"""
-    genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-pro')
+    client = genai.Client(api_key=GOOGLE_API_KEY)
     
     prompt = f"""
     Analyze the sentiment data for {company_name} and provide a comprehensive summary.
@@ -128,7 +127,7 @@ def generate_sentiment_summary(company_name, news_score, top_headlines, bottom_h
     """
     
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model='gemma-3-27b-it', content=prompt)
         return response.text
     except Exception as e:
         return f"Error generating summary: {str(e)}"
