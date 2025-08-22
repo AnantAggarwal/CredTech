@@ -25,6 +25,8 @@ def get_sample_data():
     data['credit_score'] = 50*(data['credit_score']+1)
     data['credit_score'] = data['credit_score'].round()
 
+    data['sentiment_score'] = data['sentiment_score']*100
+
     return data.to_dict(orient='records')
 
 def get_sentiment_summary(sentiment_score):
@@ -90,20 +92,6 @@ def get_sentiment_summary(sentiment_score):
             ]
         }
 
-def get_credit_rating(credit_score):
-    """Get credit rating based on score"""
-    if credit_score >= 90:
-        return 'AAA', 'Excellent', 'green'
-    elif credit_score >= 80:
-        return 'AA', 'Very Good', 'lightgreen'
-    elif credit_score >= 70:
-        return 'A', 'Good', 'blue'
-    elif credit_score >= 60:
-        return 'BBB', 'Fair', 'orange'
-    elif credit_score >= 50:
-        return 'BB', 'Below Average', 'red'
-    else:
-        return 'B', 'Poor', 'darkred'
 
 def create_credit_score_chart(dates, scores, ticker):
     """Create credit score trend chart"""
@@ -195,12 +183,11 @@ def show_leaderboard(data):
     with col2:
         st.subheader("Credit Score")
     with col3:
-        st.subheader("Rating")
+        st.subheader("Sentiment Score")
     
     st.markdown("---")
     
     for i, stock in enumerate(sorted_data, 1):
-        rating, rating_text, color = get_credit_rating(stock['credit_score'])
         
         col1, col2, col3, col4 = st.columns([0.5, 1.5, 1, 1])
         
@@ -221,7 +208,7 @@ def show_leaderboard(data):
             st.markdown(f"**{stock['credit_score']}**")
         
         with col4:
-            st.markdown(f":{color}[**{rating}**]")
+            st.markdown(f"**{stock['sentiment_score']}**")
     
     # Summary statistics
     st.markdown("---")
