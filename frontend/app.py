@@ -15,12 +15,12 @@ st.set_page_config(
 )
 
 # API URL
-API_URL = "https://lcf-web.onrender.com/scores"
+API_URL = "https://lcf-web.onrender.com/"
 
 # Sample data for demonstration (replace with actual API calls)
 def get_sample_data():
     """Generate sample data for demonstration"""
-    data = requests.get(API_URL).json()
+    data = requests.get(API_URL+"companies").json()
     
     return data
 
