@@ -21,6 +21,7 @@ API_URL = "https://lcf-web.onrender.com/"
 def get_sample_data():
     """Generate sample data for demonstration"""
     data = requests.get(API_URL+"companies").json()
+    data = pd.DataFrame(data)
     data['credit_score'] = 50*(data['credit_score']+1)
     data['credit_score'] = data['credit_score'].round()
 
