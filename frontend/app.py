@@ -174,7 +174,7 @@ def show_stock_analysis(data):
     st.title("🔍 Stock Analysis")
     
     # Stock selection
-    stock_options = {f"{s['ticker']} - {s['company']}": s for s in data}
+    stock_options = {f"{s['ticker']} - {s['name']}": s for s in data}
     selected_stock_name = st.selectbox(
         "Select a stock to analyze:",
         options=list(stock_options.keys())
