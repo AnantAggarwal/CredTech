@@ -30,6 +30,9 @@ def get_sample_data():
 
     return data.to_dict(orient='records')
 
+def get_stock_data(ticker):
+    data = requests.get(API_URL+'company/'+ticker+'/history').json()
+    return data
 
 def create_credit_score_chart(dates, scores, ticker):
     """Create credit score trend chart"""
@@ -181,7 +184,7 @@ def show_stock_analysis(data):
         selected_stock = stock_options[selected_stock_name]
         
         # Header with stock info
-        col1, col2, col3, col4 = st.columns(3)
+        col1, col2, col3= st.columns(3)
         
         with col1:
             st.metric("Ticker", selected_stock['ticker'])
@@ -190,23 +193,21 @@ def show_stock_analysis(data):
             st.metric("Credit Score", f"{selected_stock['credit_score']}")
         
         with col3:
-            sentiment_info = get_sentiment_summary(selected_stock['sentiment_score'])
             st.metric("Sentiment Score", f"{selected_stock['sentiment_score']}")
         
-        with col4:
-            st.metric("Last Updated", selected_stock['last_updated'].strftime('%Y-%m-%d'))
         
         # Main content tabs
         tab1, tab2, tab3 = st.tabs(["📊 Credit Analysis", "😊 Sentiment Analysis", "📈 Historical Trends"])
+        selected_stock_data = get_stock_data(selected_stock['ticker'])
         
         with tab1:
-            show_credit_analysis(selected_stock)
+            show_credit_analysis(selected_stock_data)
         
         with tab2:
-            show_sentiment_analysis(selected_stock)
+            show_sentiment_analysis(selected_stock_data)
         
         with tab3:
-            show_historical_trends(selected_stock)
+            show_historical_trends(selected_stock_data)
 
 def show_credit_analysis(stock):
     st.subheader("Credit Score Analysis")
@@ -256,10 +257,8 @@ def show_credit_analysis(stock):
         else:
             st.warning("This stock has below-average creditworthiness and higher risk.")
 
-def show_sentiment_analysis(stock):
+def show_sentiment_analysis(data):
     st.subheader("Sentiment Analysis")
-    
-    sentiment_info = get_sentiment_summary(stock['sentiment_score'])
     
     col1, col2 = st.columns(2)
     
@@ -267,7 +266,7 @@ def show_sentiment_analysis(stock):
         # Sentiment gauge
         fig = go.Figure(go.Indicator(
             mode="gauge+number+delta",
-            value=stock['sentiment_score'],
+            value=data['company_info']['current_sentiment_score'],
             domain={'x': [0, 1], 'y': [0, 1]},
             title={'text': "Sentiment Score"},
             delta={'reference': 0},
@@ -292,16 +291,12 @@ def show_sentiment_analysis(stock):
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.markdown(f"**Overall Sentiment:** {sentiment_info['overall']}")
-        st.markdown(f"**Score:** {stock['sentiment_score']}/100")
+        #st.markdown(f"**Overall Sentiment:** {sentiment_info['overall']}")
+        st.markdown(f"**Score:** {data['company_info']['sentiment_score']}/100")
         
         # Sentiment summary
         st.markdown("**Summary:**")
-        st.markdown(sentiment_info['summary'])
-        
-        st.markdown("**Key Points:**")
-        for point in sentiment_info['key_points']:
-            st.markdown(f"• {point}")
+        st.markdown(data['company_info']['summary'])
 
 def show_historical_trends(stock):
     st.subheader("Historical Trends")
