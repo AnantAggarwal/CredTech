@@ -23,10 +23,10 @@ def get_sample_data():
     data = requests.get(API_URL+"companies").json()
     data = pd.DataFrame(data)
     data['credit_score'] = 50*(data['credit_score']+1)
-    data['credit_score'] = data['credit_score'].round()
+    data['credit_score'] = data['credit_score'].round().astype(int)
 
     data['sentiment_score'] = data['sentiment_score']*100
-    data['sentiment_score'] = data['sentiment_score'].round()
+    data['sentiment_score'] = data['sentiment_score'].round().astype(int)
 
     return data.to_dict(orient='records')
 
