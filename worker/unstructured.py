@@ -122,6 +122,7 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=Non
         try:
             # Get news data with date range if provided
             news_df = get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date, end_date)
+            print(news_df)
             
             # Analyze sentiment
             news_df = analyze_sentiment_dataframe(news_df, 'text', sentiment_pipeline)
