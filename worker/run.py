@@ -13,7 +13,13 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # API Keys
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+NEWS_API_KEY = os.getenv("NEWS_KEY")
+
+# Debug: Check if environment variables are loaded
+print(f"DEBUG: DATABASE_URL loaded: {'Yes' if DATABASE_URL else 'No'}")
+print(f"DEBUG: NEWS_API_KEY loaded: {'Yes' if NEWS_API_KEY else 'No'}")
+if NEWS_API_KEY:
+    print(f"DEBUG: NEWS_API_KEY starts with: {NEWS_API_KEY[:10]}...")
 
 def load_tickers_from_file(file_path='tickers.txt'):
     """Load tickers from tickers.txt file"""
