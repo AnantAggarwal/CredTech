@@ -77,6 +77,9 @@ def get_db_connection():
             print("Error: DATABASE_URL environment variable not set")
             return None
         conn = psycopg2.connect(DATABASE_URL)
+        # Test the connection
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT 1")
         return conn
     except Exception as e:
         print(f"Error connecting to database: {e}")
@@ -175,7 +178,11 @@ def insert_or_update_company(conn, ticker, name, sentiment_score, sentiment_summ
             
     except Exception as e:
         print(f"Error inserting/updating company {ticker}: {e}")
-        conn.rollback()
+        try:
+            if conn and not conn.closed:
+                conn.rollback()
+        except Exception as rollback_error:
+            print(f"Error during rollback: {rollback_error}")
         return None
 
 def insert_score_record(conn, company_id, sentiment_score):
@@ -191,7 +198,11 @@ def insert_score_record(conn, company_id, sentiment_score):
             
     except Exception as e:
         print(f"Error inserting score record for company_id {company_id}: {e}")
-        conn.rollback()
+        try:
+            if conn and not conn.closed:
+                conn.rollback()
+        except Exception as rollback_error:
+            print(f"Error during rollback: {rollback_error}")
 
 def process_sentiment_data(start_date=None, end_date=None, is_update=False):
     """Main function to process sentiment data and update database"""
@@ -214,22 +225,25 @@ def process_sentiment_data(start_date=None, end_date=None, is_update=False):
     tickers = load_tickers_from_file()
     tag_to_comp = create_company_mapping(tickers)
     
-    # Get database connection
+    # Compute sentiment scores for all tickers (before database operations)
+    print("Computing sentiment scores...")
+    try:
+        sentiment_results = compute_sentiment_score(
+            tickers, tag_to_comp, NEWS_API_KEY, 
+            start_date=start_date, end_date=end_date
+        )
+        print(f"Processed {len(sentiment_results)} companies")
+    except Exception as e:
+        print(f"Error computing sentiment scores: {e}")
+        return
+    
+    # Get database connection after sentiment computation
     conn = get_db_connection()
     if not conn:
         print("Failed to connect to database. Exiting.")
         return
     
     try:
-        # Compute sentiment scores for all tickers
-        print("Computing sentiment scores...")
-        sentiment_results = compute_sentiment_score(
-            tickers, tag_to_comp, NEWS_API_KEY, 
-            start_date=start_date, end_date=end_date
-        )
-        
-        print(f"Processed {len(sentiment_results)} companies")
-        
         # Process each company's results
         for _, row in sentiment_results.iterrows():
             ticker = row['ticker']
@@ -255,10 +269,18 @@ def process_sentiment_data(start_date=None, end_date=None, is_update=False):
         
     except Exception as e:
         print(f"Error in sentiment processing: {e}")
-        conn.rollback()
+        try:
+            if conn and not conn.closed:
+                conn.rollback()
+        except Exception as rollback_error:
+            print(f"Error during rollback: {rollback_error}")
     
     finally:
-        conn.close()
+        try:
+            if conn and not conn.closed:
+                conn.close()
+        except Exception as close_error:
+            print(f"Error closing connection: {close_error}")
 
 def get_latest_scores():
     """Retrieve latest sentiment scores from database"""
