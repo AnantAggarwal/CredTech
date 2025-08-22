@@ -47,6 +47,7 @@ def get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date=None, end_dat
 def label_to_numeric(row):
     """Convert sentiment label and score to numeric value"""
     score = row['sentiment_score']
+    print(score)
     if row['sentiment_label'] == 'negative':
         return -score
     elif row['sentiment_label'] == 'positive':
