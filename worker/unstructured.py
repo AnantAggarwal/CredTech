@@ -5,7 +5,7 @@ from transformers import pipeline
 import google.generativeai as genai
 from datetime import datetime, timedelta
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date=None, end_date=None):
     query = f'"{tag_to_comp[ticker]}" OR {ticker}'
