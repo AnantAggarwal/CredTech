@@ -26,6 +26,7 @@ def get_sample_data():
     data['credit_score'] = data['credit_score'].round()
 
     data['sentiment_score'] = data['sentiment_score']*100
+    data['sentiment_score'] = data['sentiment_score'].round()
 
     return data.to_dict(orient='records')
 
