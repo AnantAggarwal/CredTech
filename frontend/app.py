@@ -200,8 +200,8 @@ def show_stock_analysis(data):
         tab1, tab2, tab3 = st.tabs(["📊 Credit Analysis", "😊 Sentiment Analysis", "📈 Historical Trends"])
         selected_stock_data = get_stock_data(selected_stock['ticker'])
         
-        with tab1:
-            show_credit_analysis(selected_stock_data)
+        #with tab1:
+            #show_credit_analysis(selected_stock_data)
         
         with tab2:
             show_sentiment_analysis(selected_stock_data)
@@ -298,26 +298,27 @@ def show_sentiment_analysis(data):
         st.markdown("**Summary:**")
         st.markdown(data['company_info']['summary'])
 
-def show_historical_trends(stock):
+def show_historical_trends(data):
     st.subheader("Historical Trends")
     
     col1, col2 = st.columns(2)
+    df = pd.DataFrame(data['score_history'])
     
     with col1:
         # Credit score trend
         credit_fig = create_credit_score_chart(
-            stock['historical_dates'], 
-            stock['historical_credit'], 
-            stock['ticker']
+            df['updated_at'], 
+            df['credit_score'], 
+            data['company_info']['ticker']
         )
         st.plotly_chart(credit_fig, use_container_width=True)
     
     with col2:
         # Sentiment trend
         sentiment_fig = create_sentiment_chart(
-            stock['historical_dates'], 
-            stock['historical_sentiment'], 
-            stock['ticker']
+            df['updated_at'], 
+            df['sentiment_score'], 
+            data['company_info']['ticker']
         )
         st.plotly_chart(sentiment_fig, use_container_width=True)
     
@@ -328,8 +329,8 @@ def show_historical_trends(stock):
     fig = go.Figure()
     
     fig.add_trace(go.Scatter(
-        x=stock['historical_dates'],
-        y=stock['historical_credit'],
+        x=df['updated_at'],
+        y=df['credit_score'],
         mode='lines+markers',
         name='Credit Score',
         line=dict(color='#1f77b4', width=3),
@@ -337,8 +338,8 @@ def show_historical_trends(stock):
     ))
     
     fig.add_trace(go.Scatter(
-        x=stock['historical_dates'],
-        y=stock['historical_sentiment'],
+        x=df['updated_at'],
+        y=df['sentiment_score'],
         mode='lines+markers',
         name='Sentiment Score',
         line=dict(color='#ff7f0e', width=3),
@@ -346,7 +347,7 @@ def show_historical_trends(stock):
     ))
     
     fig.update_layout(
-        title=f'{stock["ticker"]} - Credit Score vs Sentiment Score',
+        title=f'{data['company_info']["ticker"]} - Credit Score vs Sentiment Score',
         xaxis_title='Date',
         yaxis=dict(title='Credit Score', range=[0, 100]),
         yaxis2=dict(title='Sentiment Score', range=[-100, 100], overlaying='y', side='right'),
