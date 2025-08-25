@@ -12,3 +12,4 @@ requests
 transformers
 torch
 google-generativeai
+plotly
