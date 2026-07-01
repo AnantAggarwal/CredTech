@@ -1,0 +1,319 @@
+.page {
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.backBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+}
+
+.headerCenter {
+  flex: 1;
+  text-align: center;
+}
+
+.pageTitle {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.headerRight {
+  width: 100px;
+}
+
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.errorBanner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  padding: 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.sectionBadge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  background: rgba(0, 255, 157, 0.1);
+  padding: 0.25rem 0.5rem;
+}
+
+.selectorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chipSelected {
+  /* Dynamic styles applied inline via React */
+}
+
+.chipTicker {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.chipNumber {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.skelChip {
+  height: 70px;
+  background: var(--surface);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.radarSection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2rem;
+}
+
+.radarContainer {
+  margin-top: 1rem;
+}
+
+.promptBanner {
+  background: rgba(0, 255, 157, 0.05);
+  border: 1px dashed rgba(0, 255, 157, 0.3);
+  padding: 3rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.promptIcon {
+  font-size: 2rem;
+  color: rgba(0, 255, 157, 0.5);
+}
+
+.tableSection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2rem;
+}
+
+.tableWrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.tableHeader {
+  display: grid;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.thMetric {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.thCompany {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.thCompanyName {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+.tableRow {
+  display: grid;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.tdMetric {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.tdValue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 1.125rem;
+}
+
+.tdWinner {
+  background: rgba(0, 255, 157, 0.05);
+}
+
+.winnerBadge {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+/* Tooltip for Radar Chart */
+.tooltip {
+  background: rgba(10, 10, 15, 0.95);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  backdrop-filter: blur(8px);
+  min-width: 150px;
+}
+
+.tooltipLabel {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.tooltipRow:last-child {
+  margin-bottom: 0;
+}
+
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tooltipTicker {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.tooltipValue {
+  font-weight: 700;
+}

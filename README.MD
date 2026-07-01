@@ -1,88 +1,84 @@
-# CredTech - Stock Credit Analysis Platform
+# CredTech - Credit Risk & Market Sentiment Pipeline
 
-A comprehensive financial analysis platform that combines traditional credit scoring with modern sentiment analysis to provide detailed stock evaluation.
+A comprehensive AI-driven financial analysis platform that combines machine learning credit scoring with Gemini-powered sentiment analysis to evaluate top public companies.
 
-## Features
+## Architecture
 
-### 🏆 Leaderboard
-- **Credit Score Rankings**: View stocks ranked by their credit scores
-- **Financial Health Overview**: Quick comparison of stock creditworthiness
-- **Summary Statistics**: Average, highest, and lowest scores across all stocks
+This project is built using a modern decoupled architecture:
+- **Database**: PostgreSQL (Neon) - Stores ML market features, news headlines, queue status, and final scores.
+- **Background Worker**: Python (FastAPI/Pandas) - A daemon that continuously pulls pending companies, evaluates financial health, fetches latest news, and prompts Gemini for sentiment analysis.
+- **Backend API**: FastAPI - Exposes the final computed scores to the frontend.
+- **Frontend**: Next.js (React) - A modern, responsive dashboard to view company deep dives and leaderboards.
 
-### 🔍 Stock Analysis
-- **Credit Score Analysis**: Detailed credit rating and risk assessment
-- **Sentiment Analysis**: Market sentiment scoring and interpretation
-- **Historical Trends**: Visual charts showing credit and sentiment score evolution
-- **Combined Analysis**: Correlation between credit and sentiment metrics
+## Prerequisites
 
-### 📊 Interactive Visualizations
-- **Gauge Charts**: Real-time credit and sentiment score displays
-- **Trend Charts**: Historical performance tracking
-- **Combined Charts**: Side-by-side analysis of multiple metrics
+1. **Python 3.10+** (Recommended to use a virtual environment)
+2. **Node.js 18+** & `npm`
+3. **PostgreSQL** database instance (e.g., Neon or local)
 
-## Installation
+You need a `.env` file in the root of the project with the following keys:
+```env
+# Database
+DATABASE_URL=postgresql://user:password@host/dbname
 
-1. **Clone the repository**:
+# APIs
+NEWS_API_KEY=your_newsapi_key
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+## Initializing the Data Pipeline
+
+Before you can view anything in the frontend, you must build the machine learning database and seed the job queue.
+
+1. **Activate the Virtual Environment**:
    ```bash
-   git clone <repository-url>
-   cd CredTech
+   source venv/bin/activate
    ```
 
-2. **Install dependencies**:
+2. **Initialize the Database Schema & Seed the Queue**:
+   This drops existing tables and seeds the `pipeline_queue` with the S&P 500 top 300 companies.
+   *(Press `Ctrl+C` once you see "Database recreated successfully.")*
    ```bash
-   pip install -r requirements.txt
+   cd worker
+   python run.py --mode init
    ```
 
-3. **Run the application**:
+3. **Download Market Features (Historical Data)**:
+   This fetches 10 years of market data for the 300 companies from Yahoo Finance and saves it to the database so the ML model can generate credit scores.
    ```bash
-   cd frontend
-   streamlit run app.py
+   cd worker
+   python build_structured_features.py
    ```
+
+## Running the Application
+
+To run the full stack locally, you need three separate terminal windows:
+
+### Terminal 1: Background Worker
+This daemon pulls companies from the queue, runs the ML model, fetches news, generates Gemini analyst notes, and saves the final `NexScore` to the database.
+```bash
+source venv/bin/activate
+cd worker
+python run.py --mode update
+```
+
+### Terminal 2: FastAPI Backend
+This serves the API endpoints for the frontend to consume.
+```bash
+source venv/bin/activate
+cd backend
+uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+### Terminal 3: Next.js Frontend
+This starts the web dashboard on `localhost:3000`.
+```bash
+cd frontend-next
+npm run dev
+```
 
 ## Usage
-
-### Navigation
-The application has three main pages accessible via the sidebar:
-
-1. **🏆 Leaderboard**: View all stocks ranked by credit score
-2. **🔍 Stock Analysis**: Select and analyze individual stocks
-3. **📊 About**: Learn about the platform and methodology
-
-### Stock Analysis Features
-- **Credit Score**: Numerical score (0-100) with letter rating (AAA to B)
-- **Sentiment Score**: Market sentiment (-100 to +100) with detailed summary
-- **Historical Trends**: Monthly data showing score evolution over time
-- **Risk Assessment**: Color-coded risk levels and recommendations
-
-## Data Sources
-
-Currently using sample data for demonstration. In production, the platform integrates with:
-- Financial APIs for real-time stock data
-- News APIs for sentiment analysis
-- Credit rating agencies for official ratings
-- Social media platforms for market sentiment
-
-## Technology Stack
-
-- **Frontend**: Streamlit (Python web framework)
-- **Visualization**: Plotly (Interactive charts)
-- **Data Processing**: Pandas, NumPy
-- **Machine Learning**: Scikit-learn, Transformers
-- **APIs**: FastAPI, Requests
-
-## Disclaimer
-
-This platform is for educational and research purposes. Investment decisions should be based on comprehensive analysis and consultation with financial advisors.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
+Once everything is running, open your browser and navigate to `http://localhost:3000`. 
+Click **LOAD MORE** at the bottom of the page to refresh the list as the background worker processes more companies!
 
 

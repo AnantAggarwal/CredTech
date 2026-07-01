@@ -6,10 +6,17 @@ sqlalchemy
 pydantic
 yfinance
 pandas
+numpy
 python-dotenv
 tweepy
 requests
 transformers
 torch
+google-genai
 google-generativeai
 plotly
+lightgbm
+shap
+pandas_datareader
+scikit-learn
+pyarrow

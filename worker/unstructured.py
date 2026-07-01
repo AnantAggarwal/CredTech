@@ -11,71 +11,94 @@ def get_company_news(ticker, tag_to_comp, NEWS_API_KEY, start_date=None, end_dat
     query = f'"{tag_to_comp[ticker]}" OR {ticker}'
     print(f"Searching for news with query: {query}")
     
-    # Add date range to query if provided
-    if start_date and end_date:
-        from_str = start_date.strftime('%Y-%m-%d')
-        to_str = end_date.strftime('%Y-%m-%d')
-        url = (f'https://newsapi.org/v2/everything?'
-               f'q={query}&'
-               f'language=en&'
-               f'sortBy=publishedAt&'
-               f'from={from_str}&'
-               f'to={to_str}&'
-               f'apiKey={NEWS_API_KEY}')
-        print(f"Using date range: {from_str} to {to_str}")
-    else:
-        url = (f'https://newsapi.org/v2/everything?'
-               f'q={query}&'
-               f'language=en&'
-               f'sortBy=publishedAt&'
-               f'apiKey={NEWS_API_KEY}')
-        print("No date range specified, using recent articles")
-
-    print(f"Making request to News API...")
-    response = requests.get(url)
-    
-    # Check if the request was successful
-    if response.status_code != 200:
-        print(f"Error: News API returned status code {response.status_code}")
-        print(f"Response: {response.text}")
-        return pd.DataFrame()
-    
-    data = response.json()
-    print(f"News API response status: {data.get('status', 'unknown')}")
-    print(f"Total results: {data.get('totalResults', 0)}")
-    
-    articles = data.get('articles', [])
-    print(f"Number of articles received: {len(articles)}")
-
-    # Filter for relevant articles, create a DataFrame
     news_data = []
-    for i, article in enumerate(articles):
-        # Check if required fields exist
-        if not article.get('title') or not article.get('description'):
-            print(f"Skipping article {i}: missing title or description")
-            continue
+    try:
+        # Add date range to query if provided
+        if start_date and end_date:
+            from_str = start_date.strftime('%Y-%m-%d')
+            to_str = end_date.strftime('%Y-%m-%d')
+            url = (f'https://newsapi.org/v2/everything?'
+                   f'q={query}&'
+                   f'language=en&'
+                   f'sortBy=publishedAt&'
+                   f'from={from_str}&'
+                   f'to={to_str}&'
+                   f'apiKey={NEWS_API_KEY}')
+            print(f"Using date range: {from_str} to {to_str}")
+        else:
+            url = (f'https://newsapi.org/v2/everything?'
+                   f'q={query}&'
+                   f'language=en&'
+                   f'sortBy=publishedAt&'
+                   f'apiKey={NEWS_API_KEY}')
+            print("No date range specified, using recent articles")
+
+        print(f"Making request to News API...")
+        response = requests.get(url)
+        
+        # Check if the request was successful
+        if response.status_code == 200:
+            data = response.json()
+            articles = data.get('articles', [])
             
-        news_data.append({
-            'source': article['source']['name'] if article.get('source') else 'Unknown',
-            'title': article['title'],
-            'description': article['description'],
-            'url': article.get('url', ''),
-            'published_at': article.get('publishedAt', ''),
-            'text': article['title'] + '\n' + article['description']
-        })
-    
+            for i, article in enumerate(articles):
+                if not article.get('title') or not article.get('description'):
+                    continue
+                news_data.append({
+                    'source': article['source']['name'] if article.get('source') else 'Unknown',
+                    'title': article['title'],
+                    'description': article['description'],
+                    'url': article.get('url', ''),
+                    'published_at': article.get('publishedAt', ''),
+                    'text': article['title'] + '\n' + article['description']
+                })
+        else:
+            print(f"NewsAPI error {response.status_code}: {response.text}")
+    except Exception as e:
+        print(f"NewsAPI exception: {e}")
+        
+    if not news_data:
+        print(f"Falling back to yfinance for {ticker} news...")
+        try:
+            import yfinance as yf
+            t = yf.Ticker(ticker)
+            y_news = t.news
+            if y_news:
+                for article in y_news:
+                    title = article.get('title', '')
+                    link = article.get('link', '')
+                    publisher = article.get('publisher', 'Unknown')
+                    summary = article.get('summary', title)
+                    news_data.append({
+                        'source': publisher,
+                        'title': title,
+                        'description': summary,
+                        'url': link,
+                        'published_at': str(article.get('providerPublishTime', '')),
+                        'text': title + '\n' + summary
+                    })
+        except Exception as e:
+            print(f"yfinance fallback failed: {e}")
+
     print(f"Processed {len(news_data)} valid articles")
     return pd.DataFrame(news_data)
 
 def label_to_numeric(row):
-    """Convert sentiment label and score to numeric value"""
-    score = row['sentiment_score']
-    print(score)
-    if row['sentiment_label'] == 'negative':
-        return -score
-    elif row['sentiment_label'] == 'positive':
+    """
+    Convert model label + confidence score to a numeric value in [-1, 1].
+    The model (rahilv/news-sentiment-analysis-roberta) outputs:
+      'bullish'  → positive sentiment
+      'bearish'  → negative sentiment
+      'neutral'  → no signal
+    Handles any casing variation defensively.
+    """
+    label = row['sentiment_label'].lower().strip()
+    score = row['sentiment_score']   # model confidence [0, 1]
+    if label in ('bullish', 'positive'):
         return score
-    else: # Neutral
+    elif label in ('bearish', 'negative'):
+        return -score
+    else:   # neutral or unknown
         return 0.0
 
 def analyze_sentiment_dataframe(df, text_column, pipeline):
@@ -103,6 +126,30 @@ def get_extreme_content(df, column, n=5):
     bottom_items = df.nsmallest(n, 'numeric_sentiment')[column].tolist()
     
     return top_items, bottom_items
+
+def get_top_headlines(df, n=5):
+    """
+    Return top N most impactful headlines sorted by abs(numeric_sentiment) descending.
+    Each headline is a dict: {title, source, url, sentiment_label, sentiment_score}
+    """
+    if df.empty:
+        return []
+
+    # Work on a copy so we don't mutate the caller's df
+    work = df.copy()
+    work['abs_sentiment'] = work['numeric_sentiment'].abs()
+    top = work.nlargest(n, 'abs_sentiment')
+
+    headlines = []
+    for _, r in top.iterrows():
+        headlines.append({
+            'title': r.get('title', ''),
+            'source': r.get('source', 'Unknown'),
+            'url': r.get('url', ''),
+            'sentiment_label': r.get('sentiment_label', 'neutral'),
+            'sentiment_score': float(r.get('numeric_sentiment', 0.0)),
+        })
+    return headlines
 
 def generate_sentiment_summary(company_name, news_score, top_headlines, bottom_headlines):
     """Generate sentiment summary using Gemini"""
@@ -133,7 +180,16 @@ def generate_sentiment_summary(company_name, news_score, top_headlines, bottom_h
         return f"Error generating summary: {str(e)}"
 
 def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=None, start_date=None, end_date=None):
-    """Compute sentiment scores for multiple tickers and return summary dataframe"""
+    """
+    Compute sentiment scores for multiple tickers and return summary dataframe.
+
+    Returns a DataFrame where each row has:
+      ticker, company_name, sentiment_score, sentiment_summary, top_headlines
+
+    top_headlines is a list[dict] with keys:
+      {title, source, url, sentiment_label, sentiment_score}
+    sorted by abs(sentiment_score) descending (top 5 most impactful articles).
+    """
     
     # Check if NEWS_API_KEY is provided
     if not NEWS_API_KEY:
@@ -165,13 +221,16 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=Non
             
             # Use news sentiment as the main sentiment score
             sentiment_score = news_sentiment
+
+            # ── NEW: build top-5 impactful headlines ─────────────────────
+            top_headlines_list = get_top_headlines(news_df, n=5)
             
-            # Get extreme content
-            top_headlines, bottom_headlines = get_extreme_content(news_df, 'title')
+            # Get extreme content (for the Gemini summary)
+            top_title_headlines, bottom_title_headlines = get_extreme_content(news_df, 'title')
             
             # Generate summary
             summary = generate_sentiment_summary(
-                tag_to_comp[ticker], news_sentiment, top_headlines, bottom_headlines
+                tag_to_comp[ticker], news_sentiment, top_title_headlines, bottom_title_headlines
             )
             
             # Store results
@@ -179,7 +238,8 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=Non
                 'ticker': ticker,
                 'company_name': tag_to_comp[ticker],
                 'sentiment_score': sentiment_score,
-                'sentiment_summary': summary
+                'sentiment_summary': summary,
+                'top_headlines': top_headlines_list,   # NEW
             })
             
         except Exception as e:
@@ -189,7 +249,8 @@ def compute_sentiment_score(tickers, tag_to_comp, NEWS_API_KEY, bearer_token=Non
                 'company_name': tag_to_comp[ticker],
                 'news_sentiment': 0.0,
                 'sentiment_score': 0.0,
-                'sentiment_summary': f"Error processing data: {str(e)}"
+                'sentiment_summary': f"Error processing data: {str(e)}",
+                'top_headlines': [],   # NEW
             })
     
     return pd.DataFrame(results)

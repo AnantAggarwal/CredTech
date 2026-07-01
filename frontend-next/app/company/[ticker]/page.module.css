@@ -1,0 +1,451 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 28px;
+  background: rgba(10, 10, 15, 0.85);
+  border-bottom: 1px solid var(--border-accent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.backBtn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.backBtn:hover {
+  color: var(--accent);
+  border-color: var(--border-accent);
+  background: var(--accent-dim);
+}
+
+.headerCenter {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.pageTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tickerTitle {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.titleSep {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.titleSub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.headerRight {
+  display: flex;
+  gap: 4px;
+}
+
+.navLink {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  text-transform: uppercase;
+}
+
+.navLink:hover {
+  color: var(--accent);
+  border-color: var(--border-accent);
+  background: var(--accent-dim);
+}
+
+/* ── Main ──────────────────────────────────────── */
+.main {
+  flex: 1;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Error banner ─────────────────────────────── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(248, 113, 113, 0.06);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  color: #f87171;
+  font-size: 13px;
+}
+
+/* ── Hero section ─────────────────────────────── */
+.heroSection {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: start;
+  animation: fadeIn 0.4s ease;
+}
+
+.gaugePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-xl);
+  padding: 32px 28px;
+  min-width: 240px;
+}
+
+.gradePanelRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.gradeDesc {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Stats panel ─────────────────────────────── */
+.statsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.statCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color var(--transition);
+}
+
+.statCard:hover {
+  border-color: var(--border-accent);
+}
+
+.statHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.statValue {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.statBar {
+  height: 6px;
+  background: var(--bg-surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.statBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.statDesc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── Analyst Note ────────────────────────────── */
+.analystNote {
+  background: rgba(0, 255, 157, 0.03);
+  border: 1px solid var(--border-accent);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+}
+
+.analystHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.analystIcon {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.analystTitle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.analystText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ── Section ─────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.5s ease;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.sectionBadge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
+  border-radius: 100px;
+  padding: 2px 10px;
+}
+
+/* ── News grid ───────────────────────────────── */
+.newsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.newsCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+
+.newsCard:hover {
+  border-color: var(--border-accent);
+  background: var(--bg-surface-2);
+  transform: translateX(2px);
+}
+
+.newsTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.newsSource {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.newsBadge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  border: 1px solid;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.newsTitle {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.newsBottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.newsConfidenceLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.newsConfBar {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.newsConfFill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 1s ease;
+}
+
+.newsConfValue {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ── Chart container ─────────────────────────── */
+.chartContainer {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+/* ── Skeleton shapes ─────────────────────────── */
+.skel {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-2) 25%,
+    var(--bg-surface-3) 50%,
+    var(--bg-surface-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+.skelTitle { width: 280px; height: 22px; }
+.skelGauge { width: 200px; height: 200px; border-radius: 50%; }
+.skelStat { height: 100px; }
+.skelNote { height: 80px; }
+.skelNews { height: 80px; }
+.skelChart { height: 180px; }
+
+/* ── Empty state ─────────────────────────────── */
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 768px) {
+  .header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .main {
+    padding: 16px;
+    gap: 20px;
+  }
+  .heroSection {
+    grid-template-columns: 1fr;
+  }
+  .gaugePanel {
+    min-width: unset;
+  }
+}

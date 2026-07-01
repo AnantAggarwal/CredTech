@@ -313,6 +313,21 @@ def build_daily_panel(ticker: str, years: int, macro_df: Optional[pd.DataFrame])
 # Main
 # -----------------------------
 
+
+def get_top_300_tickers():
+    try:
+        import pandas as pd
+        import requests
+        import io
+        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        html = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}).text
+        df = pd.read_html(io.StringIO(html))[0]
+        tickers = df['Symbol'].tolist()
+        return tickers[:300]
+    except Exception as e:
+        log(f"Failed to fetch S&P 500: {e}")
+        return ["AAPL", "MSFT", "GOOGL", "AMZN", "META"]
+
 def parse_args():
     ap = argparse.ArgumentParser(description="Build structured features panel (issuer × date)")
     ap.add_argument("--tickers", nargs="*", help="List of tickers (space-separated).", default=[])
@@ -328,17 +343,11 @@ def main():
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    # Resolve tickers
-    tickers = list(args.tickers or [])
-    if args.tickers_file:
-        path = Path(args.tickers_file)
-        if path.exists():
-            more = [t.strip() for t in path.read_text().splitlines() if t.strip()]
-            tickers.extend(more)
+    # Resolve tickers (Top 300)
+    tickers = get_top_300_tickers()
+    if args.tickers:
+        tickers = args.tickers
     tickers = sorted(set([t.upper() for t in tickers]))
-    if not tickers:
-        log("No tickers provided. Example: --tickers AAPL MSFT GOOGL JPM")
-        return
 
     # Fetch macro (optional)
     macro_df = None
@@ -369,10 +378,13 @@ def main():
     # Concatenate
     final_df = pd.concat(panels, axis=0, ignore_index=True)
 
+    # Flatten columns to strings if they are tuples
+    final_df.columns = [str(c) for c in final_df.columns]
+
     # Light post-processing: handle extreme values, consistent dtypes
     # (Leave NaNs for the model team to impute; add indicator cols if desired)
     # Example: clip some obviously wild ratios
-    for col in [c for c in final_df.columns if c.startswith("fin__rat_")]:
+    for col in [c for c in final_df.columns if str(c).startswith("fin__rat_")]:
         final_df[col] = final_df[col].clip(lower=-1000, upper=1000)
 
     # Save final datasets
@@ -380,6 +392,40 @@ def main():
     final_csv = outdir / "features_daily.csv"
     final_df.to_parquet(final_parquet, index=False)
     final_df.to_csv(final_csv, index=False)
+    
+    # Save to PostgreSQL
+    import json
+    import psycopg2
+    from psycopg2.extras import execute_batch
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        try:
+            conn = psycopg2.connect(db_url)
+            records = []
+            for _, row in final_df.iterrows():
+                t = row['ticker']
+                d = row['date']
+                feat_dict = row.drop(['ticker', 'date']).to_dict()
+                feat_dict = {k: (None if pd.isna(v) else v) for k, v in feat_dict.items()}
+                records.append((t, d.strftime('%Y-%m-%d'), json.dumps(feat_dict)))
+            
+            with conn.cursor() as cur:
+                execute_batch(cur, """
+                    INSERT INTO market_features (ticker, date, features)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (ticker, date) DO UPDATE 
+                    SET features = EXCLUDED.features;
+                """, records)
+            conn.commit()
+            conn.close()
+            log("✅ Saved final panel to PostgreSQL market_features.")
+        except Exception as e:
+            log(f"Failed to save to PostgreSQL: {e}")
+    else:
+        log("DATABASE_URL not found, skipping PostgreSQL save.")
 
     log(f"✅ Saved final panel to:\n - {final_parquet}\n - {final_csv}")
     log("Done.")
