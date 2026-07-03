@@ -65,7 +65,8 @@ def safe_divide(a: pd.Series, b: pd.Series) -> pd.Series:
 
 
 def make_daily_spine(start: pd.Timestamp, end: pd.Timestamp) -> pd.DatetimeIndex:
-    return pd.date_range(start=start, end=end, freq="D")
+    # Changed from 'D' (Daily) to 'W-FRI' (Weekly) to reduce database size by 85% and prevent 512MB OOM
+    return pd.date_range(start=start, end=end, freq="W-FRI")
 
 
 def pct_change_safe(s: pd.Series, periods: int = 1) -> pd.Series:
@@ -361,73 +362,60 @@ def main():
             log(f"Macro fetch error (skipping): {e}")
             macro_df = None
 
-    # Build per-ticker panels
-    panels = []
-    for t in tickers:
-        log(f"Building panel for {t} ...")
-        panel_t = build_daily_panel(t, years=args.years, macro_df=macro_df)
-        if panel_t is not None:
-            panels.append(panel_t)
-            # Save raw per-ticker for traceability
-            panel_t.to_parquet(outdir / f"panel_{t}.parquet", index=False)
-
-    if not panels:
-        log("No panels built. Exiting.")
-        return
-
-    # Concatenate
-    final_df = pd.concat(panels, axis=0, ignore_index=True)
-
-    # Flatten columns to strings if they are tuples
-    final_df.columns = [str(c) for c in final_df.columns]
-
-    # Light post-processing: handle extreme values, consistent dtypes
-    # (Leave NaNs for the model team to impute; add indicator cols if desired)
-    # Example: clip some obviously wild ratios
-    for col in [c for c in final_df.columns if str(c).startswith("fin__rat_")]:
-        final_df[col] = final_df[col].clip(lower=-1000, upper=1000)
-
-    # Save final datasets
-    final_parquet = outdir / "features_daily.parquet"
-    final_csv = outdir / "features_daily.csv"
-    final_df.to_parquet(final_parquet, index=False)
-    final_df.to_csv(final_csv, index=False)
-    
-    # Save to PostgreSQL
     import json
     import psycopg2
     from psycopg2.extras import execute_batch
     from dotenv import load_dotenv
     load_dotenv()
-    
     db_url = os.environ.get("DATABASE_URL")
+
+    conn = None
     if db_url:
         try:
             conn = psycopg2.connect(db_url)
-            records = []
-            for _, row in final_df.iterrows():
-                t = row['ticker']
-                d = row['date']
-                feat_dict = row.drop(['ticker', 'date']).to_dict()
-                feat_dict = {k: (None if pd.isna(v) else v) for k, v in feat_dict.items()}
-                records.append((t, d.strftime('%Y-%m-%d'), json.dumps(feat_dict)))
-            
-            with conn.cursor() as cur:
-                execute_batch(cur, """
-                    INSERT INTO market_features (ticker, date, features)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (ticker, date) DO UPDATE 
-                    SET features = EXCLUDED.features;
-                """, records)
-            conn.commit()
-            conn.close()
-            log("✅ Saved final panel to PostgreSQL market_features.")
         except Exception as e:
-            log(f"Failed to save to PostgreSQL: {e}")
-    else:
-        log("DATABASE_URL not found, skipping PostgreSQL save.")
+            log(f"Failed to connect to PostgreSQL: {e}")
 
-    log(f"✅ Saved final panel to:\n - {final_parquet}\n - {final_csv}")
+    # Build and save per-ticker panels immediately to save RAM
+    for t in tickers:
+        log(f"Building panel for {t} ...")
+        panel_t = build_daily_panel(t, years=args.years, macro_df=macro_df)
+        if panel_t is not None:
+            # Flatten columns
+            panel_t.columns = [str(c) for c in panel_t.columns]
+
+            # Light post-processing
+            for col in [c for c in panel_t.columns if str(c).startswith("fin__rat_")]:
+                panel_t[col] = panel_t[col].clip(lower=-1000, upper=1000)
+            
+            # Save to PostgreSQL
+            if conn is not None:
+                try:
+                    records = []
+                    for _, row in panel_t.iterrows():
+                        d = row['date']
+                        feat_dict = row.drop(['ticker', 'date']).to_dict()
+                        feat_dict = {k: (None if pd.isna(v) else v) for k, v in feat_dict.items()}
+                        records.append((t, d.strftime('%Y-%m-%d'), json.dumps(feat_dict)))
+                    
+                    with conn.cursor() as cur:
+                        execute_batch(cur, """
+                            INSERT INTO market_features (ticker, date, features)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (ticker, date) DO UPDATE 
+                            SET features = EXCLUDED.features;
+                        """, records)
+                    conn.commit()
+                    log(f"✅ Saved {t} to PostgreSQL.")
+                except Exception as e:
+                    log(f"Failed to save {t} to PostgreSQL: {e}")
+                    conn.rollback()
+
+            # Free memory immediately
+            del panel_t
+
+    if conn is not None:
+        conn.close()
     log("Done.")
 
 if __name__ == "__main__":

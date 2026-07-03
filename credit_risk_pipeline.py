@@ -107,13 +107,14 @@ def get_credit_scores(parquet_glob=None):
             conn.close()
             
             if not raw_df.empty:
-                # Features may be returned as dicts or strings depending on json vs jsonb in psycopg2
-                def parse_features(x):
-                    if isinstance(x, str): return json.loads(x)
-                    if x is None: return {}
-                    return x
+                # Highly memory-efficient JSON parsing to prevent OOM
+                features_list = []
+                for x in raw_df['features']:
+                    if isinstance(x, str): features_list.append(json.loads(x))
+                    elif x is None: features_list.append({})
+                    else: features_list.append(x)
                 
-                features_df = pd.json_normalize(raw_df['features'].apply(parse_features))
+                features_df = pd.DataFrame(features_list)
                 data = pd.concat([raw_df[['ticker', 'date']], features_df], axis=1)
                 print(f"[credit_pipeline] Loaded {len(data)} rows from PostgreSQL")
             else:
